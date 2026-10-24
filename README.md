@@ -60,21 +60,38 @@ bash run_screen.sh --skip-netcheck  # 跳过联网自检（离线排查用）
 
 ## 持久化机制（重要）
 
-**问题**：定时任务每次调度落在全新沙箱，`/workspace` 内容不保留。
+**问题**：定时任务每次调度落在全新沙箱，`/workspace` 与 `$HOME` 内容都不保留。
 
-**方案**：
-1. 本目录已是 **git 仓库**，配置文件与代码全部入库（密钥/日志已 gitignore）
-2. `run_screen.sh` 启动时调用 `bootstrap.sh` 自检，文件残缺则从远端 clone 恢复
-3. 需配置远端仓库，否则仅依赖本地磁盘（重置即丢失）：
+**方案**（已实测通过）：
 
-```bash
-cd /workspace/交易系统
-git remote add origin <私有仓库URL>
-git push -u origin master
-echo "<私有仓库URL>" > ~/.trade_system_remote
+| 层 | 载体 | 恢复方式 |
+|---|---|---|
+| 代码/配置 | GitHub `Jerry-Luis/K1` 的 `master` 分支 | `bootstrap.sh` 自动 clone |
+| 远端地址 | `bootstrap.sh` 内 `DEFAULT_REMOTE` 硬编码 | 兜底，目录清空也不会丢 |
+| 推送凭据 | `GITHUB_TOKEN` 环境变量 | `scripts/restore_env.sh` 写入 |
+| git 身份 | 同上 | 同上 |
+
+**关键设计**：`bootstrap.sh` 是唯一必须在场的文件。只要它还在（或从仓库取一份），
+其余全部可自动重建——已实测「目录清空 + `$HOME` 全清」的极端场景。
+
+**推荐配置定时任务环境变量**：
+
+```
+GITHUB_TOKEN=ghp_xxx        # 有 repo 权限，勿写进代码
+GITHUB_USER=Jerry-Luis
 ```
 
-支持环境变量 `TRADE_GIT_REMOTE` 覆盖。`bootstrap.sh --force` 可强制覆盖本地。
+没有 `GITHUB_TOKEN` 时只能匿名读（K1 是公开仓库，能拉不能推）。
+
+**远端地址优先级**：`TRADE_GIT_REMOTE` 环境变量 > `~/.trade_system_remote` > `.remote` 文件 > 脚本内 `DEFAULT_REMOTE`。
+
+### 已知边界
+
+- **若 `/workspace/交易系统` 整个目录连同 `bootstrap.sh` 一起消失**，脚本无法自举。
+  需在定时任务里保证该目录被初始化（例如调度前置命令拉取 `bootstrap.sh`）。
+- K1 是**公开仓库**，代码（含策略逻辑）对所有人可见。若需保密应改为私有仓库，
+  此时必须提供 `GITHUB_TOKEN` 才能 clone。
+- token 明文存于 `~/.git-credentials`（600 权限），沙箱销毁即消失。
 
 ## 前置自检（run_screen.sh 内置）
 
