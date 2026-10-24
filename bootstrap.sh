@@ -17,11 +17,15 @@ set -uo pipefail
 
 BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REMOTE_FILE="$HOME/.trade_system_remote"
-REMOTE="${TRADE_GIT_REMOTE:-}"
 
-# 顺序：环境变量 > 配置文件 > 仓库内 .remote（随代码持久化的最后兜底）
+# 硬编码兜底：bootstrap.sh 自身就是入口，沙箱重置后唯一能保证存在的东西
+# （若目录被整个删除，连这个文件都没有，属于无解场景，见 README）
+DEFAULT_REMOTE="https://github.com/Jerry-Luis/K1.git"
+
+REMOTE="${TRADE_GIT_REMOTE:-}"
 [ -z "$REMOTE" ] && [ -f "$REMOTE_FILE" ] && REMOTE="$(head -1 "$REMOTE_FILE" | tr -d '[:space:]')"
-[ -z "$REMOTE" ] && [ -f "$BASE/.remote" ] && REMOTE="$(head -1 "$BASE/.remote" | tr -d '[:space:]')"
+[ -z "$REMOTE" ] && [ -f "$BASE/.remote" ] && REMOTE="$(grep -v '^#' "$BASE/.remote" | head -1 | tr -d '[:space:]')"
+[ -z "$REMOTE" ] && REMOTE="$DEFAULT_REMOTE"
 
 FORCE=0
 [ "${1:-}" = "--force" ] && FORCE=1
@@ -80,18 +84,33 @@ echo "  远端: $REMOTE"
 if [ "$FORCE" -eq 1 ]; then rm -rf "$BASE"; fi
 
 TMP="$(mktemp -d)"
-if git clone --depth 1 "$REMOTE" "$TMP/ts" 2>/dev/null; then
-  # 保留本地 logs/cache，不覆盖密钥
+CLONE_LOG="$TMP/clone.log"
+
+# 逐个尝试：带凭据 -> 匿名
+CLONE_OK=0
+if GIT_TERMINAL_PROMPT=0 git clone --depth 1 "$REMOTE" "$TMP/ts" >"$CLONE_LOG" 2>&1; then
+  CLONE_OK=1
+fi
+
+if [ "$CLONE_OK" -eq 1 ]; then
+  # 用 rsync 语义覆盖（存在则更新，不报错）；排除本地日志/缓存
   mkdir -p "$BASE"
-  cp -R "$TMP/ts/." "$BASE/" 2>/dev/null
+  ( cd "$TMP/ts" && tar cf - --exclude=.git . 2>/dev/null ) | ( cd "$BASE" && tar xf - 2>/dev/null )
+  # 单独处理 .git，保证后续可 push
+  rm -rf "$BASE/.git" && mv "$TMP/ts/.git" "$BASE/.git" 2>/dev/null
+  # 在恢复的仓库上重设远端，避免凭据残留在 URL 中
+  git -C "$BASE" remote remove origin 2>/dev/null
+  git -C "$BASE" remote add origin "$REMOTE" 2>/dev/null
   rm -rf "$TMP"
   if complete; then
     printf '%s✓%s 恢复完成（%s）\n' "$GRN" "$RST" "$(git -C "$BASE" rev-parse --short HEAD 2>/dev/null || echo 'no-git')"
     exit 0
   fi
-  printf '%s✗ 恢复后文件仍不完整%s\n' "$RED" "$RST"; rm -rf "$TMP"; exit 3
+  printf '%s✗ 恢复后文件仍不完整%s\n' "$RED" "$RST"; exit 3
 else
+  printf '%s✗ 从远端拉取失败：%s\n' "$RED" "$RST"
+  sed -n '1,6p' "$CLONE_LOG" | sed 's/^/    /'
   rm -rf "$TMP"
-  printf '%s✗ 从远端拉取失败，请检查网络与仓库权限%s\n' "$RED" "$RST"
+  printf '%s  提示：私有仓库需提供凭据（GITHUB_TOKEN 环境变量或 ~/.git-credentials）%s\n' "$YEL" "$RST"
   exit 3
 fi
