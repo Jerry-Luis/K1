@@ -43,6 +43,13 @@ if complete && [ "$FORCE" -eq 0 ]; then
   exit 0
 fi
 
+# 列出缺失项，便于定位
+echo "缺失文件："
+for f in run_screen.sh config/model_v3.json config/model_v3.md \
+         scripts/datasource.py scripts/model.py scripts/pipeline.py scripts/reporter.py; do
+  [ -s "$BASE/$f" ] || echo "  - $f"
+done
+
 echo "本地文件不完整或强制恢复，尝试从远端拉取…"
 
 if [ -z "$REMOTE" ]; then

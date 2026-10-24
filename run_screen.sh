@@ -45,11 +45,14 @@ printf '%s\n' "═════════════════════�
 
 # ---------------------------------------------------------------- 0. 持久化引导
 # 沙箱每次调度可能为全新实例；若本地文件残缺，先尝试从远端恢复
-if ! bash "$BASE/bootstrap.sh" >/dev/null 2>&1; then
-  bash "$BASE/bootstrap.sh"   # 重跑一次显示具体原因
-  fail "持久化引导失败（代码缺失且无法从远端恢复）"
+# 注意：run_screen.sh 自身存在才能走到这里，其余文件缺失时 bootstrap 负责补
+if [ -f "$BASE/bootstrap.sh" ]; then
+  if ! bash "$BASE/bootstrap.sh"; then
+    fail "持久化引导失败（代码缺失且无法从远端恢复，见上方缺失清单）"
+  fi
+else
+  warn "bootstrap.sh 缺失，跳过远端恢复（仅依赖本地文件）"
 fi
-ok "持久化检查通过"
 
 # ---------------------------------------------------------------- 1. Python
 PY=""
