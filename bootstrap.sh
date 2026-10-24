@@ -101,6 +101,9 @@ if [ "$CLONE_OK" -eq 1 ]; then
   # 在恢复的仓库上重设远端，避免凭据残留在 URL 中
   git -C "$BASE" remote remove origin 2>/dev/null
   git -C "$BASE" remote add origin "$REMOTE" 2>/dev/null
+  # 清理残缺引用：origin/HEAD 可能指向空 sha，导致 fsck 报错
+  git -C "$BASE" remote set-head origin --auto >/dev/null 2>&1 || \
+    git -C "$BASE" update-ref -d refs/remotes/origin/HEAD >/dev/null 2>&1
   rm -rf "$TMP"
   if complete; then
     printf '%s✓%s 恢复完成（%s）\n' "$GRN" "$RST" "$(git -C "$BASE" rev-parse --short HEAD 2>/dev/null || echo 'no-git')"
