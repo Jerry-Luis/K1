@@ -45,9 +45,10 @@ complete() {
   return 0
 }
 
+RECOVERED=0
 if complete && [ "$FORCE" -eq 0 ]; then
   printf '%s✓%s 本地系统完整，无需恢复\n' "$GRN" "$RST"
-  exit 0
+  RECOVERED=1
 fi
 
 # 列出缺失项，便于定位
@@ -75,9 +76,13 @@ if [ -z "$REMOTE" ]; then
      将 /workspace/交易系统 整体挂载为持久卷
 
 EOF
-  complete && { printf '%s!%s 本地文件可用，继续执行（存在丢失风险）\n' "$YEL" "$RST"; exit 0; }
-  printf '%s✗ 文件缺失且无远端，无法恢复%s\n' "$RED" "$RST"
-  exit 3
+  if complete; then
+    printf '%s!%s 本地文件可用，继续执行（存在丢失风险）\n' "$YEL" "$RST"
+    RECOVERED=1
+  else
+    printf '%s✗ 文件缺失且无远端，无法恢复%s\n' "$RED" "$RST"
+    exit 3
+  fi
 fi
 
 echo "  远端: $REMOTE"
@@ -110,9 +115,10 @@ if [ "$CLONE_OK" -eq 1 ]; then
   rm -rf "$TMP"
   if complete; then
     printf '%s✓%s 恢复完成（%s）\n' "$GRN" "$RST" "$(git -C "$BASE" rev-parse --short HEAD 2>/dev/null || echo 'no-git')"
-    exit 0
+    RECOVERED=1
+  else
+    printf '%s✗ 恢复后文件仍不完整%s\n' "$RED" "$RST"; exit 3
   fi
-  printf '%s✗ 恢复后文件仍不完整%s\n' "$RED" "$RST"; exit 3
 else
   printf '%s✗ 从远端拉取失败：%s\n' "$RED" "$RST"
   sed -n '1,6p' "$CLONE_LOG" | sed 's/^/    /'
