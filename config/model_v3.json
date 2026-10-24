@@ -1,0 +1,62 @@
+{
+  "model_version": "V3.0",
+  "model_doc": "config/model_v3.md",
+
+  "screen": {
+    "min_market_cap_yi": 100,
+    "min_pe": 0,
+    "min_eps": 0.2,
+    "max_debt_ratio": 50.0,
+    "min_revenue_yoy": 0,
+    "min_profit_yoy": 0,
+    "min_deducted_profit_yoy": 0,
+    "roe_positive_years": 3,
+    "profit_growth_years": 3,
+    "max_candidates": 100,
+    "exclude_boards": ["bj"],
+    "exclude_st": true,
+    "min_list_days": 180
+  },
+
+  "dcf": {
+    "base": "latest_annual_parent_net_profit",
+    "growth_years": 3,
+    "growth_floor": -0.10,
+    "growth_cap": 0.30,
+    "discount_rate": 0.10,
+    "terminal_growth": 0.025
+  },
+
+  "graham": {
+    "zero_growth_pe": 8.5,
+    "aaa_bond_yield": 4.4,
+    "current_bond_yield": 2.0,
+    "growth_floor": 0,
+    "growth_cap": 25
+  },
+
+  "scoring": {
+    "weights": {
+      "dcf_discount": 0.30,
+      "graham_discount": 0.20,
+      "roe_3y": 0.15,
+      "np_cagr": 0.15,
+      "pe_ttm": 0.10,
+      "debt_ratio": 0.10
+    },
+    "invert_direction": ["pe_ttm", "debt_ratio"]
+  },
+
+  "thresholds": {
+    "min_dcf_discount": 20.0,
+    "require_price_below_graham": true
+  },
+
+  "datasource": {
+    "primary": "tencent_sina_eastmoney",
+    "note": "iFinD 本月额度耗尽，改用腾讯行情(实时价/PE/PB/市值) + 新浪全A列表(粗筛扫描) + 东财F10财务(三年财务/CAGR)",
+    "concurrency": 8,
+    "timeout": 25,
+    "retries": 3
+  }
+}
