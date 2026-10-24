@@ -10,3 +10,6 @@ __pycache__/
 ifind_token.json
 *.token
 .secrets/
+
+# 每次运行覆盖的中间产物
+screen_pool2.md
