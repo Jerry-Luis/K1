@@ -120,3 +120,16 @@ else
   printf '%s  提示：私有仓库需提供凭据（GITHUB_TOKEN 环境变量或 ~/.git-credentials）%s\n' "$YEL" "$RST"
   exit 3
 fi
+
+# ---------------------------------------------------------------------------
+# 自举执行：若调用方只拿到 bootstrap.sh（run_screen.sh 尚不存在），
+# 恢复完成后直接接力执行，避免"恢复成功但没人调用入口"的死角。
+# 调用方可通过 TRADE_NO_EXEC=1 抑制（测试场景）。
+# ---------------------------------------------------------------------------
+# TRADE_BOOTSTRAPPED=1 表示已由 run_screen.sh 调用，防止无限递归
+if [ "${TRADE_NO_EXEC:-0}" != "1" ] && [ "${TRADE_BOOTSTRAPPED:-0}" != "1" ] \
+   && [ -f "$BASE/run_screen.sh" ]; then
+  export TRADE_BOOTSTRAPPED=1
+  printf '%s→ 接力执行 run_screen.sh%s\n' "$GRN" "$RST"
+  exec bash "$BASE/run_screen.sh" "$@"
+fi

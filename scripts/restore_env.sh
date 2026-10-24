@@ -27,12 +27,15 @@ git config --global credential.helper store 2>/dev/null || true
 if [ -n "${GITHUB_TOKEN:-}" ]; then
   printf 'https://%s:%s@github.com\n' "${GITHUB_USER:-Jerry-Luis}" "$GITHUB_TOKEN" > "$HOME/.git-credentials"
   chmod 600 "$HOME/.git-credentials"
-  printf '%s✓%s 已用 GITHUB_TOKEN 写入凭据\n' "$GRN" "$RST"
+  printf '%s✓%s 已用 GITHUB_TOKEN 写入凭据（用户 %s）\n' "$GRN" "$RST" "${GITHUB_USER:-Jerry-Luis}"
 elif [ -s "$HOME/.git-credentials" ]; then
   chmod 600 "$HOME/.git-credentials"
   printf '%s✓%s 凭据已存在\n' "$GRN" "$RST"
 else
-  printf '%s!%s 无推送凭据，仅可匿名读取（公开仓库可行，私有仓库会失败）\n' "$YEL" "$RST"
+  # 无凭据时关闭交互提示，避免非交互执行时挂起；公开仓库仍可匿名读
+  export GIT_TERMINAL_PROMPT=0
+  printf '%s!%s 无推送凭据：仅可匿名读取公开仓库，无法推送\n' "$YEL" "$RST"
+  printf '%s  修复：在定时任务配置中注入 GITHUB_TOKEN（repo 权限）%s\n' "$YEL" "$RST"
 fi
 
 # --- 3. git 提交身份（同样存在 $HOME/.gitconfig，重置后会丢）
