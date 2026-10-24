@@ -54,6 +54,9 @@ else
   warn "bootstrap.sh 缺失，跳过远端恢复（仅依赖本地文件）"
 fi
 
+# 恢复 home 态配置（远端地址 / git 凭据），供 bootstrap 与推送使用
+[ -x "$BASE/scripts/restore_env.sh" ] && bash "$BASE/scripts/restore_env.sh"
+
 # ---------------------------------------------------------------- 1. Python
 PY=""
 for c in python3.11 python3; do

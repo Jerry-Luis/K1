@@ -18,7 +18,10 @@ set -uo pipefail
 BASE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REMOTE_FILE="$HOME/.trade_system_remote"
 REMOTE="${TRADE_GIT_REMOTE:-}"
+
+# 顺序：环境变量 > 配置文件 > 仓库内 .remote（随代码持久化的最后兜底）
 [ -z "$REMOTE" ] && [ -f "$REMOTE_FILE" ] && REMOTE="$(head -1 "$REMOTE_FILE" | tr -d '[:space:]')"
+[ -z "$REMOTE" ] && [ -f "$BASE/.remote" ] && REMOTE="$(head -1 "$BASE/.remote" | tr -d '[:space:]')"
 
 FORCE=0
 [ "${1:-}" = "--force" ] && FORCE=1
