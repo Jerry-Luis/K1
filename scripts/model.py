@@ -194,10 +194,11 @@ def calc_graham(fin, g_pct, cfg, price=None, pe=None):
     v = eps * (g_cfg["zero_growth_pe"] + 2 * g) * g_cfg["aaa_bond_yield"] / y
 
     # 合理性校验：Y=2% 时公式隐含 PE=(8.5+2g)*2.2，g=25 得 129 倍，
-    # 对成熟A股明显失真。若价值/现价 > 5 倍，判定公式不适用，不做估值。
+    # 对成熟A股明显失真。若价值/现价超过 distortion_cap，判定公式不适用，不做估值。
+    cap = g_cfg.get("distortion_cap", 5.0)
     if price and price > 0:
         ratio = v / price
-        if ratio > 5:
+        if ratio > cap:
             return None, {"ratio": ratio}, f"格氏值/现价={ratio:.1f}倍，公式在Y={y}%下失真"
 
     detail = {"eps": eps, "g_used": g, "bond_yield": y, "ratio": (v / price) if price else None}
