@@ -6,7 +6,7 @@
     "min_market_cap_yi": 100,
     "min_pe": 0,
     "min_eps": 0.2,
-    "max_debt_ratio": 60.0,
+    "max_debt_ratio": 70.0,
     "min_revenue_yoy": 0,
     "min_profit_yoy": 0,
     "min_deducted_profit_yoy": 0,
@@ -33,7 +33,7 @@
     "current_bond_yield": 2.0,
     "growth_floor": 0,
     "growth_cap": 25,
-    "distortion_cap": 8.0
+    "distortion_cap": 9.0
   },
 
   "scoring": {
